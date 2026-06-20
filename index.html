@@ -1,22 +1,383 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Komik</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rak Komik</title>
+<style>
+  /* ============================================================
+     CARA PAKAI / CARA TAMBAH KOMIK
+     ============================================================
+     Scroll ke bawah sampai ketemu bagian:
+         <script>
+            const DAFTAR_KOMIK = [ ... ]
+     Tinggal tambah satu blok seperti ini untuk tiap komik:
+
+        {
+          judul: "Judul Komikmu",
+          cover: "https://drive.google.com/uc?export=view&id=ID_FILE_COVER",
+          pdf:   "https://drive.google.com/file/d/ID_FILE_PDF/view"
+        },
+
+     Cara dapat link cover & PDF dari Google Drive:
+     1. Klik kanan file di Drive > Bagikan > Akses umum: "Siapa saja yang
+        memiliki link" (Anyone with the link).
+     2. Klik kanan lagi > Salin link.
+        - Link PDF biasa bisa langsung dipakai apa adanya di "pdf".
+        - Link cover (gambar) sebaiknya diubah formatnya jadi:
+          https://drive.google.com/uc?export=view&id=ID_FILE
+          ID_FILE adalah deretan karakter di tengah link asli, contoh:
+          https://drive.google.com/file/d/ID_FILE/view
+     3. Simpan file ini, lalu buka lagi di browser. Selesai.
+     ============================================================ */
+  :root{
+    --kertas: #f3ead9;
+    --kertas-gelap: #e7d9bf;
+    --tinta: #2b2420;
+    --tinta-lembut: #5c5045;
+    --sampul: #a8421f;
+    --sampul-terang: #c75a32;
+    --emas: #b5862f;
+    --garis: #d8c8a8;
+    --bayangan: rgba(43, 36, 32, 0.18);
+  }
+
+  [data-tema="gelap"]{
+    --kertas: #1c1815;
+    --kertas-gelap: #15110f;
+    --tinta: #ede3d0;
+    --tinta-lembut: #b8aa92;
+    --sampul: #d8703f;
+    --sampul-terang: #e8895a;
+    --emas: #d4a543;
+    --garis: #3a322a;
+    --bayangan: rgba(0, 0, 0, 0.45);
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 0%, var(--kertas-gelap), transparent 60%),
+      var(--kertas);
+    color: var(--tinta);
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    transition: background 0.35s ease, color 0.35s ease;
+    min-height: 100vh;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    position: relative;
+    padding: 3.2rem 1.5rem 2.2rem;
+    text-align: center;
+    border-bottom: 3px double var(--garis);
+  }
+
+  .eyebrow{
+    font-family: "Courier New", monospace;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    color: var(--sampul);
+    margin: 0 0 0.8rem;
+  }
+
+  h1{
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    font-size: clamp(2.2rem, 6vw, 3.6rem);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+
+  h1 span{
+    color: var(--sampul);
+    font-style: italic;
+  }
+
+  .sub{
+    margin: 0.9rem auto 0;
+    max-width: 36rem;
+    color: var(--tinta-lembut);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .toggle-tema{
+    position: absolute;
+    top: 1.4rem;
+    right: 1.4rem;
+    background: transparent;
+    border: 1.5px solid var(--garis);
+    color: var(--tinta);
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    font-family: "Courier New", monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .toggle-tema:hover{ border-color: var(--sampul); transform: translateY(-1px); }
+  .toggle-tema:focus-visible{ outline: 2px solid var(--sampul); outline-offset: 2px; }
+
+  /* ---------- Pencarian ---------- */
+  .bar-cari{
+    max-width: 30rem;
+    margin: 0 auto;
+    padding: 1.8rem 1.5rem 0;
+  }
+
+  .bar-cari input{
+    width: 100%;
+    padding: 0.85rem 1.1rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    background: var(--kertas);
+    border: 1.5px solid var(--garis);
+    border-radius: 8px;
+    color: var(--tinta);
+    transition: border-color 0.2s;
+  }
+  .bar-cari input::placeholder{ color: var(--tinta-lembut); opacity: 0.7; }
+  .bar-cari input:focus-visible{
+    outline: none;
+    border-color: var(--sampul);
+  }
+
+  .jumlah-hasil{
+    text-align:center;
+    font-family: "Courier New", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--tinta-lembut);
+    margin: 0.7rem 0 0;
+  }
+
+  /* ---------- Rak / Grid ---------- */
+  main{
+    max-width: 76rem;
+    margin: 0 auto;
+    padding: 2.2rem 1.5rem 4rem;
+  }
+
+  .rak{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1.6rem 1.3rem;
+  }
+
+  .kartu{
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+    text-align: left;
+    font-family: inherit;
+  }
+
+  .bungkus-cover{
+    position: relative;
+    aspect-ratio: 2 / 3;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--kertas-gelap);
+    box-shadow: 0 6px 16px var(--bayangan), inset 0 0 0 1px var(--garis);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .kartu:hover .bungkus-cover,
+  .kartu:focus-visible .bungkus-cover{
+    transform: translateY(-5px) rotate(-0.6deg);
+    box-shadow: 0 14px 26px var(--bayangan), inset 0 0 0 1px var(--sampul);
+  }
+
+  .kartu:focus-visible{ outline: 2px solid var(--sampul); outline-offset: 4px; border-radius: 4px; }
+
+  .bungkus-cover img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .label-buka{
+    position: absolute;
+    inset: auto 0 0 0;
+    background: linear-gradient(0deg, rgba(0,0,0,0.78), transparent);
+    color: #f3ead9;
+    font-family: "Courier New", monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 1.6rem 0.7rem 0.6rem;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .kartu:hover .label-buka,
+  .kartu:focus-visible .label-buka{ opacity: 1; transform: translateY(0); }
+
+  .judul-komik{
+    margin: 0.7rem 0 0;
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--tinta);
+  }
+
+  .placeholder-cover{
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--tinta-lembut);
+    font-family: "Courier New", monospace;
+    font-size: 0.7rem;
+    text-align:center;
+    padding: 0.8rem;
+  }
+
+  .kosong{
+    text-align:center;
+    padding: 3.5rem 1rem;
+    color: var(--tinta-lembut);
+    font-style: italic;
+  }
+
+  footer{
+    text-align:center;
+    padding: 1.6rem;
+    font-family: "Courier New", monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    color: var(--tinta-lembut);
+    border-top: 1px solid var(--garis);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; }
+  }
+</style>
 </head>
 <body>
-    <h1>📚 Daftar Komik</h1>
-    
-    <div class="comic-container" id="comicList"></div>
-    
-    <div class="pagination">
-        <button id="prevPage">⬅ Prev</button>
-        <span id="pageNumber">1</span>
-        <button id="nextPage">Next ➡</button>
-    </div>
 
-    <script src="script.js"></script>
+<header>
+  <button class="toggle-tema" id="tombolTema" aria-label="Ganti tema terang/gelap">MODE GELAP</button>
+  <p class="eyebrow">Koleksi Pribadi</p>
+  <h1>Rak <span>Komik</span></h1>
+  <p class="sub">Klik sampul untuk langsung membaca lewat Google Drive.</p>
+</header>
+
+<div class="bar-cari">
+  <input type="text" id="kotakCari" placeholder="Cari judul komik…" autocomplete="off">
+  <p class="jumlah-hasil" id="jumlahHasil"></p>
+</div>
+
+<main>
+  <div class="rak" id="rakKomik"></div>
+  <p class="kosong" id="pesanKosong" style="display:none;">Tidak ada komik dengan judul itu.</p>
+</main>
+
+<footer>DIBUAT UNTUK DIBACA SANTAI · ISI ULANG DAFTAR DI DALAM KODE HTML</footer>
+
+<script>
+  /* ============================================================
+     DAFTAR KOMIK — EDIT DI SINI SAJA
+     Tambah / hapus / ubah komik dengan mengubah daftar di bawah.
+     "cover" = link gambar sampul, "pdf" = link PDF komik di Drive.
+     Boleh dikosongkan cover: "" jika belum ada, akan tampil placeholder.
+     ============================================================ */
+  const DAFTAR_KOMIK = [
+    {
+      judul: "RE27 (Namonashi)",
+      cover: "https://lh3.googleusercontent.com/d/1vI_EGi_wI7GWSKpJ-zpj2NltzXxkPC3G",
+      pdf: "https://lh3.googleusercontent.com/d/1vI_EGi_wI7GWSKpJ-zpj2NltzXxkPC3G"
+    },
+    {
+      judul: "Contoh: Kisah Tinta Malam",
+      cover: "",
+      pdf: "https://drive.google.com/file/d/CONTOH_ID_FILE_2/view"
+    }
+  ];
+
+  const rak = document.getElementById('rakKomik');
+  const pesanKosong = document.getElementById('pesanKosong');
+  const jumlahHasil = document.getElementById('jumlahHasil');
+  const kotakCari = document.getElementById('kotakCari');
+
+  function buatKartu(komik){
+    const a = document.createElement('a');
+    a.className = 'kartu';
+    a.href = komik.pdf;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+
+    const bungkus = document.createElement('div');
+    bungkus.className = 'bungkus-cover';
+
+    if(komik.cover && komik.cover.trim() !== ''){
+      const img = document.createElement('img');
+      img.src = komik.cover;
+      img.alt = 'Sampul ' + komik.judul;
+      img.loading = 'lazy';
+      bungkus.appendChild(img);
+    } else {
+      const ph = document.createElement('div');
+      ph.className = 'placeholder-cover';
+      ph.textContent = 'Belum ada sampul';
+      bungkus.appendChild(ph);
+    }
+
+    const label = document.createElement('div');
+    label.className = 'label-buka';
+    label.textContent = 'Buka di Drive ↗';
+    bungkus.appendChild(label);
+
+    const judul = document.createElement('p');
+    judul.className = 'judul-komik';
+    judul.textContent = komik.judul;
+
+    a.appendChild(bungkus);
+    a.appendChild(judul);
+    return a;
+  }
+
+  function render(daftar){
+    rak.innerHTML = '';
+    if(daftar.length === 0){
+      pesanKosong.style.display = 'block';
+    } else {
+      pesanKosong.style.display = 'none';
+      daftar.forEach(k => rak.appendChild(buatKartu(k)));
+    }
+    jumlahHasil.textContent = daftar.length + ' judul';
+  }
+
+  kotakCari.addEventListener('input', () => {
+    const q = kotakCari.value.trim().toLowerCase();
+    const hasil = DAFTAR_KOMIK.filter(k => k.judul.toLowerCase().includes(q));
+    render(hasil);
+  });
+
+  // Tema gelap/terang, ingat pilihan terakhir
+  const tombolTema = document.getElementById('tombolTema');
+  function terapkanTema(tema){
+    document.documentElement.setAttribute('data-tema', tema);
+    tombolTema.textContent = tema === 'gelap' ? 'MODE TERANG' : 'MODE GELAP';
+    localStorage.setItem('temaKomik', tema);
+  }
+  tombolTema.addEventListener('click', () => {
+    const sekarang = document.documentElement.getAttribute('data-tema') === 'gelap' ? 'terang' : 'gelap';
+    terapkanTema(sekarang);
+  });
+  terapkanTema(localStorage.getItem('temaKomik') || 'terang');
+
+  render(DAFTAR_KOMIK);
+</script>
+
 </body>
 </html>
