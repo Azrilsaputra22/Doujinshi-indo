@@ -136,6 +136,48 @@
   }
   #sortSelect:hover{border-color:var(--paper-dim);}
 
+  #searchWrap{
+    position:relative;
+    display:flex;
+    align-items:center;
+    margin-bottom:20px;
+  }
+  #searchIcon{
+    position:absolute;
+    left:14px;
+    color:var(--paper-dim);
+    font-size:0.95rem;
+    pointer-events:none;
+  }
+  #searchInput{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:10px;
+    color:var(--paper);
+    padding:11px 40px 11px 38px;
+    font-size:0.9rem;
+    font-family:inherit;
+  }
+  #searchInput::placeholder{color:var(--paper-dim);}
+  #searchInput:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+  #searchClear{
+    position:absolute;
+    right:10px;
+    background:transparent;
+    border:none;
+    color:var(--paper-dim);
+    cursor:pointer;
+    width:24px; height:24px;
+    border-radius:6px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.8rem;
+  }
+  #searchClear:hover{color:var(--paper); background:var(--panel-edge);}
+
   #emptyState{
     border:1px dashed var(--panel-edge);
     border-radius:12px;
@@ -144,6 +186,19 @@
     color:var(--paper-dim);
   }
   #emptyState .big{
+    font-size:1.1rem;
+    color:var(--paper);
+    margin-bottom:8px;
+  }
+
+  #noResultState{
+    border:1px dashed var(--panel-edge);
+    border-radius:12px;
+    padding:60px 20px;
+    text-align:center;
+    color:var(--paper-dim);
+  }
+  #noResultState .big{
     font-size:1.1rem;
     color:var(--paper);
     margin-bottom:8px;
@@ -558,9 +613,20 @@
       </div>
     </div>
 
+    <div id="searchWrap">
+      <span id="searchIcon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Cari judul komik..." aria-label="Cari judul komik">
+      <button id="searchClear" aria-label="Hapus pencarian" title="Hapus pencarian" style="display:none;">✕</button>
+    </div>
+
     <div id="emptyState" style="display:none;">
       <div class="big">Rak masih kosong</div>
       <p>Tambahkan komik pertamamu dengan link Google Drive.</p>
+    </div>
+
+    <div id="noResultState" style="display:none;">
+      <div class="big">Tidak ada hasil</div>
+      <p id="noResultText">Tidak ada komik yang cocok dengan pencarian.</p>
     </div>
 
     <div id="grid"></div>
@@ -660,7 +726,12 @@ https://drive.google.com/file/d/FILEID_3/view
   let library = [];      // [{id, judul, pages:[driveId,...], scrollPos, zoom, createdAt}]
   let currentComic = null;
   let currentSort = 'recent';
+  let searchQuery = '';
   const sortSelect = document.getElementById('sortSelect');
+  const searchInput = document.getElementById('searchInput');
+  const searchClear = document.getElementById('searchClear');
+  const noResultState = document.getElementById('noResultState');
+  const noResultText = document.getElementById('noResultText');
 
   // ---------- helpers ----------
   function uid(){ return 'c' + Date.now() + Math.random().toString(36).slice(2,7); }
@@ -739,12 +810,36 @@ https://drive.google.com/file/d/FILEID_3/view
     renderGrid();
   });
 
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value.trim();
+    searchClear.style.display = searchQuery ? 'flex' : 'none';
+    renderGrid();
+  });
+
+  searchClear.addEventListener('click', () => {
+    searchQuery = '';
+    searchInput.value = '';
+    searchClear.style.display = 'none';
+    renderGrid();
+    searchInput.focus();
+  });
+
   // ---------- RAK render ----------
   function renderGrid(){
     grid.innerHTML = '';
-    emptyState.style.display = library.length === 0 ? 'block' : 'none';
 
-    const sorted = sortLibrary(library);
+    const hasLibrary = library.length > 0;
+    const filtered = searchQuery
+      ? library.filter(c => c.judul.toLowerCase().includes(searchQuery.toLowerCase()))
+      : library;
+
+    emptyState.style.display = !hasLibrary ? 'block' : 'none';
+    noResultState.style.display = (hasLibrary && searchQuery && filtered.length === 0) ? 'block' : 'none';
+    if(searchQuery){
+      noResultText.textContent = `Tidak ada komik berjudul "${searchQuery}".`;
+    }
+
+    const sorted = sortLibrary(filtered);
 
     sorted.forEach(comic => {
       const card = document.createElement('div');
@@ -845,15 +940,18 @@ https://drive.google.com/file/d/FILEID_3/view
       grid.appendChild(card);
     });
 
-    const addCard = document.createElement('div');
-    addCard.id = 'addCard';
-    addCard.tabIndex = 0;
-    addCard.setAttribute('role','button');
-    addCard.setAttribute('aria-label','Tambah komik baru');
-    addCard.innerHTML = `<span class="plus">+</span><span class="label">Tambah Komik</span>`;
-    addCard.addEventListener('click', () => openModal());
-    addCard.addEventListener('keydown', (e) => { if(e.key==='Enter') openModal(); });
-    grid.appendChild(addCard);
+    const isNoResult = hasLibrary && searchQuery && filtered.length === 0;
+    if(!isNoResult){
+      const addCard = document.createElement('div');
+      addCard.id = 'addCard';
+      addCard.tabIndex = 0;
+      addCard.setAttribute('role','button');
+      addCard.setAttribute('aria-label','Tambah komik baru');
+      addCard.innerHTML = `<span class="plus">+</span><span class="label">Tambah Komik</span>`;
+      addCard.addEventListener('click', () => openModal());
+      addCard.addEventListener('keydown', (e) => { if(e.key==='Enter') openModal(); });
+      grid.appendChild(addCard);
+    }
   }
 
   // ---------- MODAL ----------
@@ -898,7 +996,7 @@ https://drive.google.com/file/d/FILEID_3/view
     modalCountNote.style.color = invalid>0 ? '#ff8a6a' : 'var(--paper-dim)';
   });
 
-  document.getElementById('btnOpenModalTop').addEventListener('click', openModal);
+  document.getElementById('btnOpenModalTop').addEventListener('click', () => openModal());
   document.getElementById('btnCancelModal').addEventListener('click', closeModal);
   modalOverlay.addEventListener('click', (e) => { if(e.target === modalOverlay) closeModal(); });
 
