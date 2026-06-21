@@ -3,380 +3,1243 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rak Komik</title>
+<title>Wadah Baca — Rak Komik</title>
 <style>
-  /* ============================================================
-     CARA PAKAI / CARA TAMBAH KOMIK
-     ============================================================
-     Scroll ke bawah sampai ketemu bagian:
-         <script>
-            const DAFTAR_KOMIK = [ ... ]
-     Tinggal tambah satu blok seperti ini untuk tiap komik:
-
-        {
-          judul: "Judul Komikmu",
-          cover: "https://drive.google.com/uc?export=view&id=ID_FILE_COVER",
-          pdf:   "https://drive.google.com/file/d/ID_FILE_PDF/view"
-        },
-
-     Cara dapat link cover & PDF dari Google Drive:
-     1. Klik kanan file di Drive > Bagikan > Akses umum: "Siapa saja yang
-        memiliki link" (Anyone with the link).
-     2. Klik kanan lagi > Salin link.
-        - Link PDF biasa bisa langsung dipakai apa adanya di "pdf".
-        - Link cover (gambar) sebaiknya diubah formatnya jadi:
-          https://drive.google.com/uc?export=view&id=ID_FILE
-          ID_FILE adalah deretan karakter di tengah link asli, contoh:
-          https://drive.google.com/file/d/ID_FILE/view
-     3. Simpan file ini, lalu buka lagi di browser. Selesai.
-     ============================================================ */
   :root{
-    --kertas: #f3ead9;
-    --kertas-gelap: #e7d9bf;
-    --tinta: #2b2420;
-    --tinta-lembut: #5c5045;
-    --sampul: #a8421f;
-    --sampul-terang: #c75a32;
-    --emas: #b5862f;
-    --garis: #d8c8a8;
-    --bayangan: rgba(43, 36, 32, 0.18);
+    --ink: #0c0d10;
+    --panel: #15171c;
+    --panel-edge: #2a2d35;
+    --paper: #eae5da;
+    --paper-dim: #a9a397;
+    --accent: #ff5a36;
+    --accent-dim: #7a2e1c;
+    --gutter: 14px;
   }
 
-  [data-tema="gelap"]{
-    --kertas: #1c1815;
-    --kertas-gelap: #15110f;
-    --tinta: #ede3d0;
-    --tinta-lembut: #b8aa92;
-    --sampul: #d8703f;
-    --sampul-terang: #e8895a;
-    --emas: #d4a543;
-    --garis: #3a322a;
-    --bayangan: rgba(0, 0, 0, 0.45);
-  }
-
-  *{ box-sizing: border-box; }
-
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
   body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'Georgia', 'Noto Serif', serif;
+    min-height:100vh;
+  }
+  button, input, select, textarea{font-family:inherit;}
+  ::selection{background:var(--accent); color:#180a06;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+
+  /* ---------- Top bar ---------- */
+  #topbar{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 16px;
+    background:rgba(12,13,16,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--panel-edge);
+  }
+  #brand{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+    cursor:pointer;
+  }
+  #brand .mark{
+    font-weight:900;
+    font-size:1.3rem;
+    color:var(--accent);
+    font-style:italic;
+  }
+  #brand .sub{
+    font-size:0.68rem;
+    color:var(--paper-dim);
+    text-transform:uppercase;
+    letter-spacing:2px;
+  }
+  .controls{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .iconbtn{
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    color:var(--paper);
+    width:36px;height:36px;
+    border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    font-size:1rem;
+    transition:border-color .15s, color .15s;
+  }
+  .iconbtn:hover{border-color:var(--accent); color:var(--accent);}
+  .iconbtn:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+
+  .btn{
+    border:none;
+    border-radius:8px;
+    padding:11px 20px;
+    font-size:0.92rem;
+    font-weight:bold;
+    cursor:pointer;
+    letter-spacing:0.3px;
+  }
+  .btn-primary{background:var(--accent); color:#180a06;}
+  .btn-primary:hover{background:#ff7350;}
+  .btn-ghost{background:transparent; border:1px solid var(--panel-edge); color:var(--paper-dim);}
+  .btn-ghost:hover{color:var(--paper); border-color:var(--paper-dim);}
+  .btn-danger{background:transparent; border:1px solid #6b2a20; color:#ff8a6a;}
+  .btn-danger:hover{background:#3a1410;}
+
+  /* ================= RAK (halaman depan) ================= */
+  #viewRak{ display:block; }
+  #rakWrap{
+    max-width:1100px;
+    margin:0 auto;
+    padding:28px 18px 80px;
+  }
+  #rakHeader{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:14px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  #rakHeader h1{
+    font-size:1.5rem;
+    margin:0 0 4px;
+  }
+  #rakHeader p{
     margin:0;
-    background:
-      radial-gradient(circle at 15% 0%, var(--kertas-gelap), transparent 60%),
-      var(--kertas);
-    color: var(--tinta);
-    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-    transition: background 0.35s ease, color 0.35s ease;
-    min-height: 100vh;
+    color:var(--paper-dim);
+    font-size:0.88rem;
   }
 
-  /* ---------- Header ---------- */
-  header{
-    position: relative;
-    padding: 3.2rem 1.5rem 2.2rem;
-    text-align: center;
-    border-bottom: 3px double var(--garis);
+  #sortSelect{
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    color:var(--paper);
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:0.85rem;
+    cursor:pointer;
   }
+  #sortSelect:hover{border-color:var(--paper-dim);}
 
-  .eyebrow{
-    font-family: "Courier New", monospace;
-    letter-spacing: 0.35em;
-    text-transform: uppercase;
-    font-size: 0.7rem;
-    color: var(--sampul);
-    margin: 0 0 0.8rem;
-  }
-
-  h1{
-    font-family: Georgia, "Times New Roman", serif;
-    font-weight: 700;
-    font-size: clamp(2.2rem, 6vw, 3.6rem);
-    margin: 0;
-    letter-spacing: -0.01em;
-  }
-
-  h1 span{
-    color: var(--sampul);
-    font-style: italic;
-  }
-
-  .sub{
-    margin: 0.9rem auto 0;
-    max-width: 36rem;
-    color: var(--tinta-lembut);
-    font-size: 1rem;
-    line-height: 1.5;
-  }
-
-  .toggle-tema{
-    position: absolute;
-    top: 1.4rem;
-    right: 1.4rem;
-    background: transparent;
-    border: 1.5px solid var(--garis);
-    color: var(--tinta);
-    border-radius: 999px;
-    padding: 0.5rem 1rem;
-    font-family: "Courier New", monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-    cursor: pointer;
-    transition: border-color 0.2s, transform 0.15s;
-  }
-  .toggle-tema:hover{ border-color: var(--sampul); transform: translateY(-1px); }
-  .toggle-tema:focus-visible{ outline: 2px solid var(--sampul); outline-offset: 2px; }
-
-  /* ---------- Pencarian ---------- */
-  .bar-cari{
-    max-width: 30rem;
-    margin: 0 auto;
-    padding: 1.8rem 1.5rem 0;
-  }
-
-  .bar-cari input{
-    width: 100%;
-    padding: 0.85rem 1.1rem;
-    font-family: inherit;
-    font-size: 0.95rem;
-    background: var(--kertas);
-    border: 1.5px solid var(--garis);
-    border-radius: 8px;
-    color: var(--tinta);
-    transition: border-color 0.2s;
-  }
-  .bar-cari input::placeholder{ color: var(--tinta-lembut); opacity: 0.7; }
-  .bar-cari input:focus-visible{
-    outline: none;
-    border-color: var(--sampul);
-  }
-
-  .jumlah-hasil{
+  #emptyState{
+    border:1px dashed var(--panel-edge);
+    border-radius:12px;
+    padding:60px 20px;
     text-align:center;
-    font-family: "Courier New", monospace;
-    font-size: 0.72rem;
-    letter-spacing: 0.06em;
-    color: var(--tinta-lembut);
-    margin: 0.7rem 0 0;
+    color:var(--paper-dim);
+  }
+  #emptyState .big{
+    font-size:1.1rem;
+    color:var(--paper);
+    margin-bottom:8px;
   }
 
-  /* ---------- Rak / Grid ---------- */
-  main{
-    max-width: 76rem;
-    margin: 0 auto;
-    padding: 2.2rem 1.5rem 4rem;
+  #grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+    gap:18px;
   }
-
-  .rak{
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1.6rem 1.3rem;
+  .card{
+    cursor:pointer;
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    position:relative;
+    transition:transform .15s, border-color .15s;
   }
-
-  .kartu{
-    display: block;
-    text-decoration: none;
-    color: inherit;
-    cursor: pointer;
-    border: none;
-    background: none;
-    padding: 0;
-    text-align: left;
-    font-family: inherit;
+  .card:hover{transform:translateY(-3px); border-color:var(--accent);}
+  .card .cover{
+    width:100%;
+    aspect-ratio:3/4.2;
+    object-fit:cover;
+    display:block;
+    background:linear-gradient(160deg, #1d2027, #15171c);
   }
-
-  .bungkus-cover{
-    position: relative;
-    aspect-ratio: 2 / 3;
-    border-radius: 4px;
-    overflow: hidden;
-    background: var(--kertas-gelap);
-    box-shadow: 0 6px 16px var(--bayangan), inset 0 0 0 1px var(--garis);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  .card .cover.broken-cover{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--paper-dim);
+    font-size:0.75rem;
+    text-align:center;
+    padding:10px;
   }
-
-  .kartu:hover .bungkus-cover,
-  .kartu:focus-visible .bungkus-cover{
-    transform: translateY(-5px) rotate(-0.6deg);
-    box-shadow: 0 14px 26px var(--bayangan), inset 0 0 0 1px var(--sampul);
+  .card .meta{
+    padding:10px 10px 12px;
   }
-
-  .kartu:focus-visible{ outline: 2px solid var(--sampul); outline-offset: 4px; border-radius: 4px; }
-
-  .bungkus-cover img{
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
+  .card .title{
+    font-size:0.88rem;
+    line-height:1.3;
+    color:var(--paper);
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
   }
-
-  .label-buka{
-    position: absolute;
-    inset: auto 0 0 0;
-    background: linear-gradient(0deg, rgba(0,0,0,0.78), transparent);
-    color: #f3ead9;
-    font-family: "Courier New", monospace;
-    font-size: 0.66rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 1.6rem 0.7rem 0.6rem;
-    opacity: 0;
-    transform: translateY(6px);
-    transition: opacity 0.25s ease, transform 0.25s ease;
+  .card .pagecount{
+    margin-top:4px;
+    font-size:0.7rem;
+    color:var(--paper-dim);
   }
-  .kartu:hover .label-buka,
-  .kartu:focus-visible .label-buka{ opacity: 1; transform: translateY(0); }
-
-  .judul-komik{
-    margin: 0.7rem 0 0;
-    font-size: 0.92rem;
-    font-weight: 600;
-    line-height: 1.3;
-    color: var(--tinta);
+  .card .progress-track{
+    margin-top:6px;
+    width:100%;
+    height:4px;
+    border-radius:3px;
+    background:var(--panel-edge);
+    overflow:hidden;
   }
-
-  .placeholder-cover{
-    width:100%; height:100%;
+  .card .progress-fill{
+    height:100%;
+    background:var(--accent);
+    border-radius:3px;
+  }
+  .card .delbtn{
+    position:absolute;
+    top:6px; right:6px;
+    width:26px; height:26px;
+    border-radius:6px;
+    background:rgba(12,13,16,0.75);
+    border:1px solid var(--panel-edge);
+    color:var(--paper-dim);
     display:flex; align-items:center; justify-content:center;
-    color: var(--tinta-lembut);
-    font-family: "Courier New", monospace;
-    font-size: 0.7rem;
-    text-align:center;
-    padding: 0.8rem;
+    font-size:0.85rem;
+    cursor:pointer;
+    opacity:0;
+    transition:opacity .15s, color .15s, border-color .15s;
+  }
+  .card:hover .delbtn{opacity:1;}
+  .card .delbtn:hover{color:#ff8a6a; border-color:#6b2a20;}
+
+  .card .editbtn{
+    position:absolute;
+    top:6px; right:38px;
+    width:26px; height:26px;
+    border-radius:6px;
+    background:rgba(12,13,16,0.75);
+    border:1px solid var(--panel-edge);
+    color:var(--paper-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.8rem;
+    cursor:pointer;
+    opacity:0;
+    transition:opacity .15s, color .15s, border-color .15s;
+  }
+  .card:hover .editbtn{opacity:1;}
+  .card .editbtn:hover{color:var(--accent); border-color:var(--accent-dim);}
+
+  #addCard{
+    cursor:pointer;
+    border-radius:10px;
+    border:1px dashed var(--panel-edge);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    aspect-ratio:3/4.7;
+    color:var(--paper-dim);
+    transition:border-color .15s, color .15s;
+  }
+  #addCard:hover{border-color:var(--accent); color:var(--accent);}
+  #addCard .plus{font-size:1.8rem; line-height:1;}
+  #addCard span.label{font-size:0.8rem;}
+
+  /* ================= MODAL TAMBAH ================= */
+  #modalOverlay{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.6);
+    z-index:100;
+    align-items:flex-start;
+    justify-content:center;
+    overflow-y:auto;
+    padding:40px 16px;
+  }
+  #modalOverlay.active{display:flex;}
+
+  .modal-overlay-shared{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.6);
+    z-index:110;
+    align-items:flex-start;
+    justify-content:center;
+    overflow-y:auto;
+    padding:40px 16px;
+  }
+  .modal-overlay-shared.active{display:flex;}
+  #importModal{
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:14px;
+    max-width:460px;
+    width:100%;
+    padding:26px;
+  }
+  #importModal h2{margin:0 0 4px; font-size:1.2rem;}
+  #importActions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:22px;
+    flex-wrap:wrap;
+  }
+  #modal{
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:14px;
+    max-width:560px;
+    width:100%;
+    padding:26px;
+  }
+  #modal h2{margin:0 0 4px; font-size:1.2rem;}
+  #modal .modal-sub{color:var(--paper-dim); font-size:0.85rem; margin-bottom:20px;}
+  label.field-label{
+    display:block;
+    font-size:0.7rem;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--paper-dim);
+    margin-bottom:7px;
+    margin-top:16px;
+  }
+  label.field-label:first-of-type{margin-top:0;}
+  #modal input[type=text]{
+    width:100%;
+    background:var(--ink);
+    border:1px solid var(--panel-edge);
+    border-radius:8px;
+    color:var(--paper);
+    padding:10px 12px;
+    font-size:0.9rem;
+  }
+  #modal textarea{
+    width:100%;
+    min-height:160px;
+    background:var(--ink);
+    border:1px solid var(--panel-edge);
+    border-radius:8px;
+    color:var(--paper);
+    font-family:'Courier New', monospace;
+    font-size:0.83rem;
+    padding:12px;
+    line-height:1.7;
+    resize:vertical;
+  }
+  #modal textarea::placeholder{color:#5c5f68;}
+  .field-hint{font-size:0.74rem; color:var(--paper-dim); margin-top:5px;}
+  #modalCountNote{font-size:0.78rem; margin-top:8px; color:var(--paper-dim);}
+  #modalActions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:22px;
   }
 
-  .kosong{
+  details.help{
+    background:var(--ink);
+    border:1px solid var(--panel-edge);
+    border-radius:10px;
+    padding:10px 14px;
+    margin-top:16px;
+  }
+  details.help summary{cursor:pointer; font-size:0.8rem; color:var(--paper-dim);}
+  details.help .help-body{
+    margin-top:9px;
+    font-size:0.78rem;
+    color:var(--paper-dim);
+    line-height:1.6;
+  }
+  details.help code{background:var(--panel); padding:1px 6px; border-radius:4px; color:var(--accent); font-size:0.74rem;}
+
+  /* ================= READER ================= */
+  #viewReader{ display:none; flex-direction:column; align-items:center; padding:0 0 120px; }
+  #viewReader.active{display:flex;}
+  #viewRak.hidden{display:none;}
+
+  .page-wrap{
+    width:100%;
+    display:flex;
+    justify-content:center;
+    margin-bottom:0;
+    position:relative;
+    line-height:0;
+  }
+  .page-wrap img{
+    width:var(--reader-width, 720px);
+    max-width:100%;
+    display:block;
+    height:auto;
+    background:var(--panel);
+  }
+  .page-num{
+    position:absolute;
+    top:8px; left:8px;
+    background:rgba(0,0,0,0.55);
+    color:var(--paper-dim);
+    font-size:0.68rem;
+    padding:3px 8px;
+    border-radius:6px;
+    font-family:'Courier New', monospace;
+    pointer-events:none;
+  }
+  .page-wrap.broken img{display:none;}
+  .broken-note{
+    display:none;
+    width:var(--reader-width, 720px);
+    max-width:100%;
+    background:var(--panel);
+    border:1px dashed var(--panel-edge);
+    color:var(--paper-dim);
+    padding:30px 16px;
     text-align:center;
-    padding: 3.5rem 1rem;
-    color: var(--tinta-lembut);
-    font-style: italic;
+    font-size:0.85rem;
+    border-radius:6px;
+  }
+  .page-wrap.broken .broken-note{display:block;}
+
+  #endNote{
+    width:var(--reader-width, 720px);
+    max-width:100%;
+    text-align:center;
+    padding:34px 10px 10px;
+    color:var(--paper-dim);
+    font-size:0.85rem;
+    border-top:1px solid var(--panel-edge);
+    margin-top:10px;
+  }
+  #endNote .mark{color:var(--accent); font-style:italic; font-weight:bold;}
+
+  #readerTitleBar{
+    width:var(--reader-width, 720px);
+    max-width:100%;
+    margin:14px 0 10px;
+    font-size:0.78rem;
+    color:var(--paper-dim);
   }
 
-  footer{
-    text-align:center;
-    padding: 1.6rem;
-    font-family: "Courier New", monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.06em;
-    color: var(--tinta-lembut);
-    border-top: 1px solid var(--garis);
+  #floatBar{
+    position:fixed;
+    bottom:18px; left:50%;
+    transform:translateX(-50%);
+    z-index:60;
+    background:rgba(21,23,28,0.94);
+    border:1px solid var(--panel-edge);
+    backdrop-filter:blur(8px);
+    border-radius:14px;
+    padding:8px 12px;
+    display:none;
+    align-items:center;
+    gap:10px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.5);
+  }
+  #floatBar.active{display:flex;}
+  #floatBar .sep{width:1px; height:22px; background:var(--panel-edge);}
+  #floatBar input[type=range]{width:90px; accent-color:var(--accent);}
+  #zoomLabel{font-size:0.72rem; color:var(--paper-dim); width:38px; text-align:center;}
+
+  #pageJump{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel); border:1px solid var(--panel-edge);
+    border-radius:8px; padding:0 8px; height:36px;
+  }
+  #pageJump input{
+    width:46px; background:transparent; border:none;
+    color:var(--paper); text-align:center; font-size:0.85rem;
+  }
+  #pageJump span{color:var(--paper-dim); font-size:0.8rem;}
+
+  #progressTrack{
+    position:fixed; top:0; left:0; height:3px;
+    background:var(--accent); z-index:70; width:0%;
+    transition:width .08s linear;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    *{ transition: none !important; }
+  @media (max-width:480px){
+    #brand .sub{display:none;}
+    #floatBar{gap:6px; padding:6px 8px;}
+    #floatBar input[type=range]{width:60px;}
+    #grid{grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:12px;}
+  }
+
+  /* ---------- Mode layar penuh ---------- */
+  #viewReader:fullscreen{
+    background:var(--ink);
+    overflow-y:auto;
+    width:100%;
+    padding-bottom:120px;
+  }
+  #viewReader:fullscreen #readerTitleBar{
+    margin-top:14px;
+  }
+  .iconbtn.is-active{
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+
+  /* ---------- Cetak / Simpan sebagai PDF ---------- */
+  @media print{
+    body *{ visibility:hidden; }
+    #viewReader, #viewReader *{ visibility:visible; }
+    #viewReader{
+      position:absolute;
+      top:0; left:0;
+      width:100%;
+      padding:0;
+      margin:0;
+      display:flex !important;
+    }
+    #readerTitleBar, .page-num{ display:none !important; }
+    .page-wrap{ break-inside:avoid; page-break-inside:avoid; }
+    .page-wrap img{ width:100% !important; max-width:none; }
+    #topbar, #floatBar, #progressTrack, #endNote{ display:none !important; }
+    @page{ margin:0; }
   }
 </style>
 </head>
 <body>
 
-<header>
-  <button class="toggle-tema" id="tombolTema" aria-label="Ganti tema terang/gelap">MODE GELAP</button>
-  <p class="eyebrow">Koleksi Pribadi</p>
-  <h1>Rak <span>Komik</span></h1>
-  <p class="sub">Klik sampul untuk langsung membaca lewat Google Drive.</p>
-</header>
+<div id="progressTrack"></div>
 
-<div class="bar-cari">
-  <input type="text" id="kotakCari" placeholder="Cari judul komik…" autocomplete="off">
-  <p class="jumlah-hasil" id="jumlahHasil"></p>
+<div id="topbar">
+  <div id="brand">
+    <span class="mark">Wadah Baca</span>
+    <span class="sub">rak komik pribadi</span>
+  </div>
+  <div class="controls" id="rakControls"></div>
+  <div class="controls" id="readerControls" style="display:none;">
+    <div id="pageJump">
+      <input type="number" id="jumpInput" min="1" placeholder="1" aria-label="Lompat ke halaman">
+      <span>/ <span id="totalPages">0</span></span>
+    </div>
+    <button class="iconbtn" id="btnFullscreen" title="Mode layar penuh" aria-label="Mode layar penuh">⛶</button>
+    <button class="iconbtn" id="btnPrint" title="Cetak / simpan sebagai PDF" aria-label="Cetak sebagai PDF">🖨</button>
+    <button class="iconbtn" id="btnBackToRak" title="Kembali ke rak" aria-label="Kembali ke rak">🏠</button>
+  </div>
 </div>
 
-<main>
-  <div class="rak" id="rakKomik"></div>
-  <p class="kosong" id="pesanKosong" style="display:none;">Tidak ada komik dengan judul itu.</p>
-</main>
+<!-- ================= RAK ================= -->
+<div id="viewRak">
+  <div id="rakWrap">
+    <div id="rakHeader">
+      <div>
+        <h1>Rak Komikmu</h1>
+        <p>Klik salah satu cover untuk mulai baca.</p>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <select id="sortSelect" aria-label="Sortir komik">
+          <option value="recent">Baru ditambah</option>
+          <option value="az">Judul A–Z</option>
+          <option value="za">Judul Z–A</option>
+          <option value="pages-asc">Halaman: sedikit–banyak</option>
+          <option value="pages-desc">Halaman: banyak–sedikit</option>
+        </select>
+        <button class="iconbtn" id="btnExport" title="Ekspor rak ke file backup" aria-label="Ekspor rak">⭳</button>
+        <button class="iconbtn" id="btnImport" title="Impor rak dari file backup" aria-label="Impor rak">⭱</button>
+        <input type="file" id="fileImport" accept="application/json" style="display:none;">
+        <button class="btn btn-primary" id="btnOpenModalTop">+ Tambah Komik</button>
+      </div>
+    </div>
 
-<footer>DIBUAT UNTUK DIBACA SANTAI · ISI ULANG DAFTAR DI DALAM KODE HTML</footer>
+    <div id="emptyState" style="display:none;">
+      <div class="big">Rak masih kosong</div>
+      <p>Tambahkan komik pertamamu dengan link Google Drive.</p>
+    </div>
+
+    <div id="grid"></div>
+  </div>
+</div>
+
+<!-- ================= MODAL TAMBAH ================= -->
+<div id="modalOverlay">
+  <div id="modal">
+    <h2>Tambah Komik Baru</h2>
+    <p class="modal-sub">Cover diambil otomatis dari halaman pertama.</p>
+
+    <label class="field-label" for="judulInput">Judul komik</label>
+    <input type="text" id="judulInput" placeholder="Misal: Babad Gunungkidul">
+
+    <label class="field-label" for="linkInput">Daftar link Google Drive (satu per baris, urut)</label>
+    <textarea id="linkInput" placeholder="https://drive.google.com/file/d/FILEID_1/view
+https://drive.google.com/file/d/FILEID_2/view
+https://drive.google.com/file/d/FILEID_3/view
+..."></textarea>
+    <div id="modalCountNote"></div>
+
+    <details class="help">
+      <summary>Format link Google Drive yang didukung</summary>
+      <div class="help-body">
+        Tempel link apa adanya dari "Get link" Google Drive:<br>
+        <code>https://drive.google.com/file/d/FILEID/view?usp=sharing</code><br><br>
+        Pastikan setiap file diatur ke <b>"Anyone with the link"</b>, kalau tidak gambar tidak akan muncul.
+      </div>
+    </details>
+
+    <div id="modalActions">
+      <button class="btn btn-ghost" id="btnCancelModal">Batal</button>
+      <button class="btn btn-primary" id="btnSaveComic">Simpan ke Rak</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL IMPOR ================= -->
+<div id="importOverlay" class="modal-overlay-shared">
+  <div id="importModal">
+    <h2>Impor Rak</h2>
+    <p class="modal-sub" id="importSummary"></p>
+    <div id="importActions">
+      <button class="btn btn-ghost" id="btnCancelImport">Batal</button>
+      <button class="btn btn-ghost" id="btnMergeImport">Gabung dengan rak sekarang</button>
+      <button class="btn btn-primary" id="btnReplaceImport">Timpa rak sekarang</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= READER ================= -->
+<div id="viewReader">
+  <div id="readerTitleBar"></div>
+</div>
+
+<div id="floatBar">
+  <button class="iconbtn" id="btnTop" title="Ke atas" aria-label="Ke halaman pertama">⤒</button>
+  <div class="sep"></div>
+  <span id="zoomLabel">100%</span>
+  <input type="range" id="zoomRange" min="40" max="160" value="100" aria-label="Atur lebar gambar">
+  <div class="sep"></div>
+  <button class="iconbtn" id="btnBottom" title="Ke bawah" aria-label="Ke halaman terakhir">⤓</button>
+</div>
 
 <script>
-  /* ============================================================
-     DAFTAR KOMIK — EDIT DI SINI SAJA
-     Tambah / hapus / ubah komik dengan mengubah daftar di bawah.
-     "cover" = link gambar sampul, "pdf" = link PDF komik di Drive.
-     Boleh dikosongkan cover: "" jika belum ada, akan tampil placeholder.
-     ============================================================ */
-  const DAFTAR_KOMIK = [
-    {
-      judul: "RE27 (Namonashi)",
-      cover: "https://lh3.googleusercontent.com/d/1vI_EGi_wI7GWSKpJ-zpj2NltzXxkPC3G",
-      pdf: "https://lh3.googleusercontent.com/d/1vI_EGi_wI7GWSKpJ-zpj2NltzXxkPC3G"
-    },
-    {
-      judul: "Contoh: Kisah Tinta Malam",
-      cover: "",
-      pdf: "https://drive.google.com/file/d/CONTOH_ID_FILE_2/view"
+(function(){
+  const STORAGE_KEY = 'wadahbaca_rak_v1';
+
+  // ---------- elements ----------
+  const viewRak = document.getElementById('viewRak');
+  const viewReader = document.getElementById('viewReader');
+  const grid = document.getElementById('grid');
+  const emptyState = document.getElementById('emptyState');
+  const rakControls = document.getElementById('rakControls');
+  const readerControls = document.getElementById('readerControls');
+  const floatBar = document.getElementById('floatBar');
+  const brand = document.getElementById('brand');
+
+  const modalOverlay = document.getElementById('modalOverlay');
+  const linkInput = document.getElementById('linkInput');
+  const judulInput = document.getElementById('judulInput');
+  const modalCountNote = document.getElementById('modalCountNote');
+
+  const importOverlay = document.getElementById('importOverlay');
+  const importSummary = document.getElementById('importSummary');
+  const fileImport = document.getElementById('fileImport');
+
+  const readerTitleBar = document.getElementById('readerTitleBar');
+  const jumpInput = document.getElementById('jumpInput');
+  const totalPagesEl = document.getElementById('totalPages');
+  const zoomRange = document.getElementById('zoomRange');
+  const zoomLabel = document.getElementById('zoomLabel');
+  const progressTrack = document.getElementById('progressTrack');
+
+  // ---------- state ----------
+  let library = [];      // [{id, judul, pages:[driveId,...], scrollPos, zoom, createdAt}]
+  let currentComic = null;
+  let currentSort = 'recent';
+  const sortSelect = document.getElementById('sortSelect');
+
+  // ---------- helpers ----------
+  function uid(){ return 'c' + Date.now() + Math.random().toString(36).slice(2,7); }
+
+  function extractDriveId(url){
+    url = (url||'').trim();
+    if(!url) return null;
+    let m = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+    if(m) return m[1];
+    m = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+    if(m) return m[1];
+    m = url.match(/^([a-zA-Z0-9_-]{20,})$/);
+    if(m) return m[1];
+    return null;
+  }
+  function toImageUrl(id){ return `https://lh3.googleusercontent.com/d/${id}=w1600`; }
+  function toImageUrlFallback(id){ return `https://drive.google.com/uc?export=view&id=${id}`; }
+  function toCoverUrl(id){ return `https://lh3.googleusercontent.com/d/${id}=w400`; }
+
+  function parseLinks(text){
+    return (text||'').split('\n').map(l=>l.trim()).filter(Boolean)
+      .map(l => ({ raw:l, id: extractDriveId(l) }));
+  }
+
+  function saveLibrary(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(library)); }catch(e){}
+  }
+  function loadLibrary(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      library = raw ? JSON.parse(raw) : [];
+    }catch(e){ library = []; }
+  }
+  function saveSortPref(){
+    try{ localStorage.setItem(STORAGE_KEY + '_sort', currentSort); }catch(e){}
+  }
+  function loadSortPref(){
+    try{
+      const s = localStorage.getItem(STORAGE_KEY + '_sort');
+      if(s) currentSort = s;
+    }catch(e){}
+  }
+
+  function naturalCompare(a, b){
+    // Mengurutkan A-Z dengan angka diperlakukan numerik (1, 2, ..., 10, 11)
+    // bukan secara karakter (1, 10, 11, 2, ...)
+    return a.localeCompare(b, 'id', { numeric: true, sensitivity: 'base' });
+  }
+
+  function sortLibrary(list){
+    const arr = list.slice();
+    switch(currentSort){
+      case 'az':
+        arr.sort((a,b) => naturalCompare(a.judul, b.judul));
+        break;
+      case 'za':
+        arr.sort((a,b) => naturalCompare(b.judul, a.judul));
+        break;
+      case 'pages-asc':
+        arr.sort((a,b) => a.pages.length - b.pages.length);
+        break;
+      case 'pages-desc':
+        arr.sort((a,b) => b.pages.length - a.pages.length);
+        break;
+      case 'recent':
+      default:
+        arr.sort((a,b) => b.createdAt - a.createdAt);
+        break;
     }
-  ];
+    return arr;
+  }
 
-  const rak = document.getElementById('rakKomik');
-  const pesanKosong = document.getElementById('pesanKosong');
-  const jumlahHasil = document.getElementById('jumlahHasil');
-  const kotakCari = document.getElementById('kotakCari');
+  sortSelect.addEventListener('change', () => {
+    currentSort = sortSelect.value;
+    saveSortPref();
+    renderGrid();
+  });
 
-  function buatKartu(komik){
-    const a = document.createElement('a');
-    a.className = 'kartu';
-    a.href = komik.pdf;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
+  // ---------- RAK render ----------
+  function renderGrid(){
+    grid.innerHTML = '';
+    emptyState.style.display = library.length === 0 ? 'block' : 'none';
 
-    const bungkus = document.createElement('div');
-    bungkus.className = 'bungkus-cover';
+    const sorted = sortLibrary(library);
 
-    if(komik.cover && komik.cover.trim() !== ''){
+    sorted.forEach(comic => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.tabIndex = 0;
+      card.setAttribute('role','button');
+      card.setAttribute('aria-label', 'Buka ' + comic.judul);
+
       const img = document.createElement('img');
-      img.src = komik.cover;
-      img.alt = 'Sampul ' + komik.judul;
+      img.className = 'cover';
       img.loading = 'lazy';
-      bungkus.appendChild(img);
-    } else {
-      const ph = document.createElement('div');
-      ph.className = 'placeholder-cover';
-      ph.textContent = 'Belum ada sampul';
-      bungkus.appendChild(ph);
-    }
+      img.alt = comic.judul;
+      const firstId = comic.pages[0];
+      img.src = toCoverUrl(firstId);
+      let triedFallback = false;
+      img.addEventListener('error', () => {
+        if(!triedFallback){
+          triedFallback = true;
+          img.src = toImageUrlFallback(firstId);
+        } else {
+          img.classList.add('broken-cover');
+          img.removeAttribute('src');
+          img.alt = '';
+          img.parentElement.querySelector('.cover-fallback-text')?.remove();
+          const txt = document.createElement('div');
+          txt.className='broken-cover cover-fallback-text';
+          txt.style.position='absolute';
+          txt.style.inset='0';
+          txt.style.display='flex';
+          txt.style.alignItems='center';
+          txt.style.justifyContent='center';
+          txt.textContent = 'Cover tidak bisa dimuat';
+          card.insertBefore(txt, card.querySelector('.meta'));
+        }
+      });
 
-    const label = document.createElement('div');
-    label.className = 'label-buka';
-    label.textContent = 'Buka di Drive ↗';
-    bungkus.appendChild(label);
+      const del = document.createElement('button');
+      del.className = 'delbtn';
+      del.innerHTML = '✕';
+      del.title = 'Hapus komik';
+      del.setAttribute('aria-label', 'Hapus ' + comic.judul);
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(confirm(`Hapus "${comic.judul}" dari rak?`)){
+          library = library.filter(c => c.id !== comic.id);
+          saveLibrary();
+          renderGrid();
+        }
+      });
 
-    const judul = document.createElement('p');
-    judul.className = 'judul-komik';
-    judul.textContent = komik.judul;
+      const edit = document.createElement('button');
+      edit.className = 'editbtn';
+      edit.innerHTML = '✎';
+      edit.title = 'Edit komik';
+      edit.setAttribute('aria-label', 'Edit ' + comic.judul);
+      edit.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openModal(comic.id);
+      });
 
-    a.appendChild(bungkus);
-    a.appendChild(judul);
-    return a;
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = comic.judul;
+
+      const lastRead = comic.lastReadPage || 0;
+      const totalPages = comic.pages.length;
+      const pct = totalPages > 0 ? Math.min(100, Math.round((lastRead / totalPages) * 100)) : 0;
+
+      const pc = document.createElement('div');
+      pc.className = 'pagecount';
+      pc.textContent = lastRead > 0
+        ? `${lastRead} / ${totalPages} halaman`
+        : `${totalPages} halaman`;
+
+      meta.appendChild(title);
+      meta.appendChild(pc);
+
+      if(lastRead > 0){
+        const barTrack = document.createElement('div');
+        barTrack.className = 'progress-track';
+        const barFill = document.createElement('div');
+        barFill.className = 'progress-fill';
+        barFill.style.width = pct + '%';
+        barTrack.appendChild(barFill);
+        meta.appendChild(barTrack);
+      }
+
+      card.appendChild(img);
+      card.appendChild(edit);
+      card.appendChild(del);
+      card.appendChild(meta);
+
+      card.addEventListener('click', () => openReader(comic.id));
+      card.addEventListener('keydown', (e) => { if(e.key==='Enter') openReader(comic.id); });
+
+      grid.appendChild(card);
+    });
+
+    const addCard = document.createElement('div');
+    addCard.id = 'addCard';
+    addCard.tabIndex = 0;
+    addCard.setAttribute('role','button');
+    addCard.setAttribute('aria-label','Tambah komik baru');
+    addCard.innerHTML = `<span class="plus">+</span><span class="label">Tambah Komik</span>`;
+    addCard.addEventListener('click', () => openModal());
+    addCard.addEventListener('keydown', (e) => { if(e.key==='Enter') openModal(); });
+    grid.appendChild(addCard);
   }
 
-  function render(daftar){
-    rak.innerHTML = '';
-    if(daftar.length === 0){
-      pesanKosong.style.display = 'block';
+  // ---------- MODAL ----------
+  let editingComicId = null;
+  const modalTitleEl = document.querySelector('#modal h2');
+  const modalSubEl = document.querySelector('#modal .modal-sub');
+  const btnSaveComicEl = document.getElementById('btnSaveComic');
+
+  function openModal(comicId){
+    if(comicId){
+      const comic = library.find(c => c.id === comicId);
+      if(!comic) return;
+      editingComicId = comicId;
+      judulInput.value = comic.judul;
+      linkInput.value = comic.pages.map(id => `https://drive.google.com/file/d/${id}/view`).join('\n');
+      modalTitleEl.textContent = 'Edit Komik';
+      modalSubEl.textContent = 'Ubah judul atau daftar link, lalu simpan.';
+      btnSaveComicEl.textContent = 'Simpan Perubahan';
     } else {
-      pesanKosong.style.display = 'none';
-      daftar.forEach(k => rak.appendChild(buatKartu(k)));
+      editingComicId = null;
+      judulInput.value = '';
+      linkInput.value = '';
+      modalTitleEl.textContent = 'Tambah Komik Baru';
+      modalSubEl.textContent = 'Cover diambil otomatis dari halaman pertama.';
+      btnSaveComicEl.textContent = 'Simpan ke Rak';
     }
-    jumlahHasil.textContent = daftar.length + ' judul';
+    modalCountNote.textContent = '';
+    modalOverlay.classList.add('active');
+    setTimeout(()=>judulInput.focus(), 50);
+  }
+  function closeModal(){
+    modalOverlay.classList.remove('active');
+    editingComicId = null;
   }
 
-  kotakCari.addEventListener('input', () => {
-    const q = kotakCari.value.trim().toLowerCase();
-    const hasil = DAFTAR_KOMIK.filter(k => k.judul.toLowerCase().includes(q));
-    render(hasil);
+  linkInput.addEventListener('input', () => {
+    const parsed = parseLinks(linkInput.value);
+    const valid = parsed.filter(p=>p.id).length;
+    const invalid = parsed.length - valid;
+    if(parsed.length===0){ modalCountNote.textContent=''; return; }
+    modalCountNote.textContent = `${valid} halaman terbaca` + (invalid>0 ? `, ${invalid} link tidak dikenali` : '');
+    modalCountNote.style.color = invalid>0 ? '#ff8a6a' : 'var(--paper-dim)';
   });
 
-  // Tema gelap/terang, ingat pilihan terakhir
-  const tombolTema = document.getElementById('tombolTema');
-  function terapkanTema(tema){
-    document.documentElement.setAttribute('data-tema', tema);
-    tombolTema.textContent = tema === 'gelap' ? 'MODE TERANG' : 'MODE GELAP';
-    localStorage.setItem('temaKomik', tema);
-  }
-  tombolTema.addEventListener('click', () => {
-    const sekarang = document.documentElement.getAttribute('data-tema') === 'gelap' ? 'terang' : 'gelap';
-    terapkanTema(sekarang);
-  });
-  terapkanTema(localStorage.getItem('temaKomik') || 'terang');
+  document.getElementById('btnOpenModalTop').addEventListener('click', openModal);
+  document.getElementById('btnCancelModal').addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => { if(e.target === modalOverlay) closeModal(); });
 
-  render(DAFTAR_KOMIK);
+  document.getElementById('btnSaveComic').addEventListener('click', () => {
+    const judul = judulInput.value.trim() || 'Tanpa judul';
+    const parsed = parseLinks(linkInput.value).filter(p=>p.id);
+    if(parsed.length === 0){
+      alert('Tidak ada link Google Drive yang dikenali. Periksa kembali format link.');
+      return;
+    }
+
+    if(editingComicId){
+      const comic = library.find(c => c.id === editingComicId);
+      if(comic){
+        comic.judul = judul;
+        comic.pages = parsed.map(p=>p.id);
+        if(comic.lastReadPage && comic.lastReadPage > comic.pages.length){
+          comic.lastReadPage = comic.pages.length;
+        }
+        saveLibrary();
+        renderGrid();
+      }
+    } else {
+      const comic = {
+        id: uid(),
+        judul,
+        pages: parsed.map(p=>p.id),
+        scrollPos: 0,
+        zoom: 100,
+        lastReadPage: 0,
+        createdAt: Date.now()
+      };
+      library.unshift(comic);
+      saveLibrary();
+      renderGrid();
+    }
+    closeModal();
+  });
+
+  // ---------- EKSPOR ----------
+  document.getElementById('btnExport').addEventListener('click', () => {
+    if(library.length === 0){
+      alert('Rak masih kosong, belum ada yang bisa diekspor.');
+      return;
+    }
+    const payload = {
+      app: 'wadahbaca',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      comics: library
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const tanggal = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `rak-komik-backup-${tanggal}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // ---------- IMPOR ----------
+  let pendingImport = null;
+
+  document.getElementById('btnImport').addEventListener('click', () => {
+    fileImport.value = '';
+    fileImport.click();
+  });
+
+  fileImport.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      let data;
+      try{
+        data = JSON.parse(ev.target.result);
+      }catch(err){
+        alert('File ini bukan file backup yang valid (gagal dibaca sebagai JSON).');
+        return;
+      }
+      const comics = Array.isArray(data) ? data : data.comics;
+      if(!Array.isArray(comics) || comics.length === 0){
+        alert('File ini tidak berisi data komik yang bisa diimpor.');
+        return;
+      }
+      const valid = comics.filter(c => c && typeof c.judul === 'string' && Array.isArray(c.pages) && c.pages.length > 0);
+      if(valid.length === 0){
+        alert('File ini tidak berisi data komik yang valid.');
+        return;
+      }
+      valid.forEach(c => {
+        if(!c.id) c.id = uid();
+        if(!c.createdAt) c.createdAt = Date.now();
+        if(!c.zoom) c.zoom = 100;
+        if(!c.scrollPos) c.scrollPos = 0;
+      });
+      pendingImport = valid;
+      importSummary.textContent = `File ini berisi ${valid.length} komik. Pilih cara mengimpornya:`;
+      importOverlay.classList.add('active');
+    };
+    reader.readAsText(file);
+  });
+
+  function closeImportModal(){
+    importOverlay.classList.remove('active');
+    pendingImport = null;
+  }
+
+  document.getElementById('btnCancelImport').addEventListener('click', closeImportModal);
+  importOverlay.addEventListener('click', (e) => { if(e.target === importOverlay) closeImportModal(); });
+
+  document.getElementById('btnMergeImport').addEventListener('click', () => {
+    if(!pendingImport) return;
+    const existingIds = new Set(library.map(c => c.id));
+    const toAdd = pendingImport.filter(c => !existingIds.has(c.id));
+    library = toAdd.concat(library);
+    saveLibrary();
+    renderGrid();
+    closeImportModal();
+  });
+
+  document.getElementById('btnReplaceImport').addEventListener('click', () => {
+    if(!pendingImport) return;
+    if(!confirm('Ini akan menggantikan seluruh rak yang ada sekarang dengan isi file backup. Lanjutkan?')) return;
+    library = pendingImport;
+    saveLibrary();
+    renderGrid();
+    closeImportModal();
+  });
+
+  // ---------- READER ----------
+  function buildReaderDOM(comic){
+    viewReader.innerHTML = '';
+    const titleBar = document.createElement('div');
+    titleBar.id = 'readerTitleBar';
+    titleBar.textContent = comic.judul + ' · ' + comic.pages.length + ' halaman';
+    viewReader.appendChild(titleBar);
+
+    comic.pages.forEach((driveId, idx) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'page-wrap';
+      wrap.id = 'page-' + (idx+1);
+
+      const num = document.createElement('div');
+      num.className = 'page-num';
+      num.textContent = (idx+1) + ' / ' + comic.pages.length;
+
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.alt = 'Halaman ' + (idx+1);
+      img.src = toImageUrl(driveId);
+
+      let triedFallback = false;
+      img.addEventListener('error', () => {
+        if(!triedFallback){
+          triedFallback = true;
+          img.src = toImageUrlFallback(driveId);
+        } else {
+          wrap.classList.add('broken');
+        }
+      });
+
+      const broken = document.createElement('div');
+      broken.className = 'broken-note';
+      broken.textContent = `Halaman ${idx+1} gagal dimuat. Pastikan link ini dibagikan ke "Anyone with the link".`;
+
+      wrap.appendChild(img);
+      wrap.appendChild(num);
+      wrap.appendChild(broken);
+      viewReader.appendChild(wrap);
+    });
+
+    const endNote = document.createElement('div');
+    endNote.id = 'endNote';
+    endNote.innerHTML = `<span class="mark">Tamat</span><br>Sudah sampai halaman terakhir (${comic.pages.length}).`;
+    viewReader.appendChild(endNote);
+
+    totalPagesEl.textContent = comic.pages.length;
+    jumpInput.max = comic.pages.length;
+  }
+
+  function openReader(comicId){
+    const comic = library.find(c => c.id === comicId);
+    if(!comic) return;
+    currentComic = comic;
+
+    buildReaderDOM(comic);
+
+    viewRak.classList.add('hidden');
+    viewReader.classList.add('active');
+    rakControls.style.display = 'none';
+    readerControls.style.display = 'flex';
+    floatBar.classList.add('active');
+
+    zoomRange.value = comic.zoom || 100;
+    applyZoom(zoomRange.value);
+
+    document.title = comic.judul + ' — Wadah Baca';
+
+    requestAnimationFrame(() => {
+      if(comic.scrollPos){ window.scrollTo(0, comic.scrollPos); }
+      else { window.scrollTo(0,0); }
+    });
+  }
+
+  function backToRak(){
+    if(currentComic){
+      currentComic.scrollPos = window.scrollY;
+      currentComic.zoom = parseInt(zoomRange.value,10);
+      if(!currentComic.lastReadPage) currentComic.lastReadPage = 1;
+      saveLibrary();
+    }
+    currentComic = null;
+    viewRak.classList.remove('hidden');
+    viewReader.classList.remove('active');
+    rakControls.style.display = 'flex';
+    readerControls.style.display = 'none';
+    floatBar.classList.remove('active');
+    document.title = 'Wadah Baca — Rak Komik';
+    window.scrollTo(0,0);
+    renderGrid();
+  }
+
+  function applyZoom(val){
+    const base = 720;
+    const px = Math.round(base * (val/100));
+    document.documentElement.style.setProperty('--reader-width', px + 'px');
+    zoomLabel.textContent = val + '%';
+  }
+
+  function jumpToPage(n){
+    const el = document.getElementById('page-' + n);
+    if(el) el.scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function updateProgress(){
+    if(!currentComic) { progressTrack.style.width='0%'; return; }
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? (scrollTop/docHeight)*100 : 0;
+    progressTrack.style.width = Math.min(100, Math.max(0,pct)) + '%';
+
+    let current = 1;
+    for(let i=0;i<currentComic.pages.length;i++){
+      const el = document.getElementById('page-'+(i+1));
+      if(el){
+        const rect = el.getBoundingClientRect();
+        if(rect.top <= window.innerHeight*0.4) current = i+1;
+      }
+    }
+    jumpInput.placeholder = String(current);
+    currentComic.lastReadPage = current;
+  }
+
+  let scrollSaveTimer;
+  window.addEventListener('scroll', () => {
+    updateProgress();
+    if(!currentComic) return;
+    clearTimeout(scrollSaveTimer);
+    scrollSaveTimer = setTimeout(() => {
+      currentComic.scrollPos = window.scrollY;
+      saveLibrary();
+    }, 500);
+  });
+
+  document.getElementById('btnBackToRak').addEventListener('click', backToRak);
+  document.getElementById('btnTop').addEventListener('click', () => jumpToPage(1));
+  document.getElementById('btnBottom').addEventListener('click', () => currentComic && jumpToPage(currentComic.pages.length));
+
+  // ---------- FULLSCREEN ----------
+  const btnFullscreen = document.getElementById('btnFullscreen');
+
+  function isFullscreenSupported(){
+    return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  }
+
+  async function toggleFullscreen(){
+    if(!isFullscreenSupported()){
+      alert('Mode layar penuh tidak didukung di perangkat/browser ini.');
+      return;
+    }
+    try{
+      if(!document.fullscreenElement && !document.webkitFullscreenElement){
+        if(viewReader.requestFullscreen) await viewReader.requestFullscreen();
+        else if(viewReader.webkitRequestFullscreen) viewReader.webkitRequestFullscreen();
+      } else {
+        if(document.exitFullscreen) await document.exitFullscreen();
+        else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
+    }catch(err){
+      console.error('Gagal mengubah mode layar penuh', err);
+    }
+  }
+
+  function syncFullscreenButton(){
+    const active = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    btnFullscreen.classList.toggle('is-active', active);
+    btnFullscreen.title = active ? 'Keluar dari layar penuh' : 'Mode layar penuh';
+  }
+
+  btnFullscreen.addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', syncFullscreenButton);
+  document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
+
+  // ---------- CETAK / SIMPAN PDF ----------
+  document.getElementById('btnPrint').addEventListener('click', () => {
+    if(!currentComic){
+      alert('Buka sebuah komik terlebih dahulu sebelum mencetak.');
+      return;
+    }
+    window.print();
+  });
+  brand.addEventListener('click', () => { if(currentComic) backToRak(); });
+
+  jumpInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && currentComic){
+      const n = parseInt(jumpInput.value, 10);
+      if(n>=1 && n<=currentComic.pages.length){
+        jumpToPage(n);
+        jumpInput.value = '';
+      }
+    }
+  });
+
+  zoomRange.addEventListener('input', () => {
+    applyZoom(zoomRange.value);
+    if(currentComic){
+      currentComic.zoom = parseInt(zoomRange.value,10);
+      saveLibrary();
+    }
+  });
+
+  // ---------- init ----------
+  loadLibrary();
+  loadSortPref();
+  sortSelect.value = currentSort;
+  renderGrid();
+})();
 </script>
 
 </body>
